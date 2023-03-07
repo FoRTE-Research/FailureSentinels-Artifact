@@ -50,7 +50,7 @@ If you do not need the Monte-Carlo results, you can remove this line and replace
 This should speed up the simulations by about 50x.
 
 ### Changing Technologies
-TODO explain this and also note difference for 180nm technology
+TODO
 
 ## Evaluation Workflow
-TODO all of this
+TODO
