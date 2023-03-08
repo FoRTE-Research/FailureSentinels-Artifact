@@ -11,7 +11,7 @@ This repository contains artifacts to enable reproduction of the experiments/res
   - [ltspice](https://pypi.org/project/ltspice/) package for parsing LTSpice .raw files
 - xvfb
 
-##  Simulation Workflow
+##  Circuit Simulation Workflow
 Our evaluation is based on simulations of the full system in LTSpice; netlist generation, simulation, and evaluation are all handled in various Python scripts.
 This section describes how to run and customize the simulation workflow to generate the results we discuss in the paper.
 
@@ -22,7 +22,7 @@ Internally, this script calls `ring_oscillator.py` (once for each RO length/supp
 `ring_oscillator.py` generates an LTSpice netlist describing Failure Sentinels using the passed voltage/length parameters.
 `generate_netlists.py` also produces a text file matching the name of the `NETLIST_FOLDER` variable containing a list of all the netlist filenames produced.
 
-### Running Simulations
+### Running SPICE Simulations
 LTSpice is Windows-only software; we have to run it using wine, which in turn requires more support as we want to programatically call it from Python and ignore the grapical output.
 Generate a virtual "display" for wine by calling `xvfb` (X Virtual FrameBuffer) from the command line: `Xvfb :2 -screen 0 1024x768x24 &`.
 Once this is done, we are ready to run the simulations.
@@ -50,7 +50,29 @@ If you do not need the Monte-Carlo results, you can remove this line and replace
 This should speed up the simulations by about 50x.
 
 ### Changing Technologies
-TODO
+We evaluate Failure Sentinels across several transistor technology nodes (130nm, 90nm, and 65nm).
+To simulate with a different technology, just change the `LIB_NAME` variable in `ring_oscillator.py` to point to a new transistor model file.
 
 ## Evaluation Workflow
+Similar to the simulation workflow, the evaluation is based on a set of Python scripts.
+
+### RO Frequency
+The low-level script that measures RO frequency from an LTSpice .raw file is `frequency.py`; running this on a single .raw file will output a summary of the RO's performance at that point (frequency, power, and output amplitude).
+The `auto_freq.py` script takes as an argument the text file produced by the `generate_netlists.py` script pointing to all of the individual netlists within a directory and runs `frequency.py` on each of them.
+The output for each netlist is an abridged version of the regular `frequency.py` output in a csv format for easier processing later.
+Pipe the output of this file to a new file (e.g., `./auto_freq.py netlists_130.txt > netlists_130_freq.csv`).
+Because we are interested in frequency versus voltage, we have the `fvs_list.py` script to isolate frequency and voltage in a more convenient format: run it on the frequency csv file just generated and pipe the output to another file (`./fvs_list.py netlists_130_freq.csv > netlists_130_fvs.csv`).
+The information in this csv can be combined with similar csv files for other technology nodes by prepending the feature size in nm and concatenating the files (do this manually).
+A properly formatted frequency file is a csv with the format:
+```
+[feature size in nm],[RO length in inverters],[frequency at 1.8v],[frequency at 1.9v], ... ,[frequency at 3.6v]
+```
+Finally, the `comparison_plotter.py` script uses this file to plot RO frequency versus voltage, feature size, and RO length similar to what is seen in Figure 1 of the paper; it also plots the derivative of frequency with respect to voltage (Figure 3 in the paper).
+
+### LUT Interpolation Error
+Accuracy of the system also depends on error introduced by LUT interpolation.
+The `error.py` script takes no arguments and outputs a plot showing the interpolation error of piecewise constant interpolation and piecewise linear interpoluation (Figure 4 in the paper).
+The accuracy of interpolation depends on the first and second derivatives of the function being represented, which are available to change in the plot as `MAX_FIRST` and `MAX_SECOND`, respectively.
+
+### Design Space Exploration
 TODO
