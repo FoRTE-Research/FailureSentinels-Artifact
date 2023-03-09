@@ -9,6 +9,7 @@ This repository contains artifacts to enable reproduction of the experiments/res
 - wine
 - Python 3
   - [ltspice](https://pypi.org/project/ltspice/) package for parsing LTSpice .raw files
+  - [pymoo version 0.5.0](https://pypi.org/project/pymoo/0.5.0/) package for multi-objective optimization
 - xvfb
 
 ##  Circuit Simulation Workflow
@@ -53,7 +54,7 @@ This should speed up the simulations by about 50x.
 We evaluate Failure Sentinels across several transistor technology nodes (130nm, 90nm, and 65nm).
 To simulate with a different technology, just change the `LIB_NAME` variable in `ring_oscillator.py` to point to a new transistor model file.
 
-## Evaluation Workflow
+## Circuit Evaluation Workflow
 Similar to the simulation workflow, the evaluation is based on a set of Python scripts.
 
 ### RO Frequency
@@ -72,7 +73,20 @@ Finally, the `comparison_plotter.py` script uses this file to plot RO frequency 
 ### LUT Interpolation Error
 Accuracy of the system also depends on error introduced by LUT interpolation.
 The `error.py` script takes no arguments and outputs a plot showing the interpolation error of piecewise constant interpolation and piecewise linear interpoluation (Figure 4 in the paper).
-The accuracy of interpolation depends on the first and second derivatives of the function being represented, which are available to change in the plot as `MAX_FIRST` and `MAX_SECOND`, respectively.
+The accuracy of interpolation depends on the maximum values of the first and second derivatives of the function being represented, which are available to change in the script as `MAX_FIRST` and `MAX_SECOND`, respectively.
 
 ### Design Space Exploration
-TODO
+There are a variety of hardware configurations available to implement Failure Sentinels; performance in each metric (current consumption, sampling rate, accuracy) is interconnected and depends on various design choices (RO length, duty cycle, counter size, LUT design).
+We explore the design space using the `pymoo` optimization library.
+The `moo_no_nvm_updated_rvc.py` script runs the optimization and outputs a set of optimal design points based on analytical models of each system in each technology node (these are defined in the beginning of the script).
+It outputs a data file `pickle_moo_no_nvm.dat` containing the design and performance metrics.
+The `unpickle_moo.py` script unpacks several of these data files to produce the plots shown in Figures 5 and 6 of the paper.
+This repo contains the .dat files the `unpickle_moo.py` script looks for by default (i.e., our previous runs on the 130nm, 90nm, and 65nm nodes) so that you can run it and quickly reproduce the figures in the paper.
+
+## System Evaluation Workflow
+We quantify Failure Sentinels's system-level effect using a simulated solar energy harvester (more details in the paper).
+The files for the system simulation are in the `sim/` directory.
+The simulator is implemented in `overhead.py`, and by default simulates the system using the low-power implementation of Failure Sentinels.
+Values for the high-performance version and the baseline systems (ADC and comparator) are commented out in the script and can be easily switched in; the relevant values are `MCU_ACTIVE_CURRENT` and `RESOLUTION`.
+Changing any of the other values (e.g., checkpointing performance, voltage thresholds, capacitor size, etc.) allows you to test the system under different conditions.
+The `plot_overhead.py` script shows the runtime reduction of each system (Figure 8 in the paper); the specific values are coded into the script and are from running the `overhead.py` script under each condition shown.
